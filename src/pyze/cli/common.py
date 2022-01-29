@@ -30,7 +30,7 @@ def get_vehicle(parsed_args):
         vin = possible_vehicles[0]['vin']
 
     elif parsed_args.reg:
-        possible_vehicles = [v for v in vehicles if v['vehicleDetails']['registrationNumber'] == parsed_args.vin.replace(' ', '').upper()][0]
+        possible_vehicles = [v for v in vehicles if v['vehicleDetails']['registrationNumber'] == parsed_args.reg.replace(' ', '').upper()]
 
         if len(possible_vehicles) == 0:
             raise RuntimeError('Specified registration plate {} not found! Use `pyze vehicles` to list available vehicles.'.format(parsed_args.reg))
