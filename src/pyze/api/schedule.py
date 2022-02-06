@@ -1,10 +1,9 @@
-from enum import Enum
-from tzlocal import get_localzone
-from datetime import datetime
-
 import math
 import re
+from datetime import datetime
+from enum import Enum
 
+from tzlocal import get_localzone
 
 DAYS = [
     'monday',
@@ -86,14 +85,10 @@ class ChargeSchedules(object):
         }
 
     def validate(self):
-        seen_active = False
         for schedule in self._schedules.values():
             schedule.validate()
-            if schedule.activated:
-                if seen_active:
-                    raise InvalidScheduleException('Multiple schedules are active')
-                seen_active = True
         return True
+
 
     def update(self, id, args):
         schedule = self._schedules[id]
@@ -129,8 +124,22 @@ class ChargeSchedule(object):
                     self[day] = ScheduledCharge(start_time, duration)
 
     def validate(self):
+        first_charge_time = True
+        prior_charge_time = None
+        prior_day = None
         for day, charge_time in self._schedule.items():
             charge_time.validate()
+
+            if first_charge_time:
+                first_charge_time = False
+                prior_charge_time = charge_time
+                prior_day = day
+            else:
+                if ((charge_time.start_time, charge_time.duration) !=
+                        (prior_charge_time.start_time, prior_charge_time.duration)):
+                    raise InvalidScheduleException(
+                        'Charge time for {} ({}) must equal charge time for {} ({})'.format(day, charge_time, prior_day,
+                                                                                            prior_charge_time))
 
             if charge_time.spans_midnight:
                 next_day = DAYS[(DAYS.index(day) + 1) % len(DAYS)]
@@ -261,15 +270,13 @@ def _validate_start_time(start_time):
                 minute = start_time[4:6]
 
                 if 0 <= int(hour) < 24:
-                    if minute in ['00', '15', '30', '45']:
-                        return True
+                    return True
     raise InvalidScheduleException("{} is not a valid start time".format(start_time))
 
 
 def _validate_duration(duration):
     if isinstance(duration, int):
-        if duration % 15 == 0:
-            return duration >= 15
+        return True
     raise InvalidScheduleException("{} is not a valid duration".format(duration))
 
 
